@@ -1,0 +1,127 @@
+#ebayFinderv2
+
+from bs4 import BeautifulSoup
+import requests
+import time
+from discord_webhook import DiscordWebhook, DiscordEmbed
+
+
+
+
+products_dict = {}
+old_products_dict = {}
+new_products_dict = {}
+
+webhook_url = "https://discord.com/api/webhooks/1232815669125447722/XMIPnTRS6vdGaZbEgyYJDOuv3_neTMDjD41aPkVbvRHPBLIBRNjQ5Q0nPOHfJFei_Foh"
+
+
+def scraper():
+
+    page_number = 1
+
+    while True:
+        
+        #parsing the page for various classes of info - mation
+        page_to_scrape = requests.get(f"https://www.ebay.com/sme/bullseye_deals/Buy-1-get-1-free-add-2-to-cart/so.html?_soffid=12346338704&_soffType=OrderSubTotalOffer&seller=bullseye_deals&correlation=si%3Dbc0628091880aa3a6f4062f2fff2465e%2Csiid%3DAA%252Bqnp3c*%2Cc%3D245%2Csid%3Dp2387279%2CoperationId%3D2387279%2Ctrk-gflgs%3D&_ipg=192&_pgn={page_number}")
+
+        soup = BeautifulSoup(page_to_scrape.text, "html.parser" )
+
+        products = soup.findAll("span", attrs = {"class" : "title" })
+        new_prices = soup.findAll("span", attrs = {"class" : "bin"})
+        orig_prices = soup.findAll("span", attrs = {"class" : "stp"})
+        
+        # for product_name in products:
+        #     parent = product_name.parent
+        #     dbl_parent = parent.find_parent(class_ = "item-card lens-item")
+        #     if dbl_parent.name != 'a':
+        #         print("can't find the legit ting")
+        #     else:
+        #         link = dbl_parent.get("href")
+        #         print(link)
+        
+
+        #cycles through tuple of info: if product is more than 50% off -> bind it to a dict
+        for orig_price, product, new_price in zip(orig_prices, products, new_prices):
+            orig_price_val = float(orig_price.text[4:])
+            new_price_val = float(new_price.text[4:])
+            sales_percent = int(100 - (new_price_val/orig_price_val) *100)
+            parent = product.parent
+            dbl_parent = parent.find_parent(class_ = "item-card lens-item")
+            link = dbl_parent.get("href")
+            if(sales_percent >= 50):
+                product_name = product.text
+                product_data = (new_price.text , sales_percent, link)
+                products_dict[product_name] = (product_data)
+
+
+
+        #parsing page chevron, and cycling pages 
+        page_chevron = soup.find("a" , rel = "next", role = "button", class_ = "icon-chevron-right sh-partial-refresh")
+
+        if page_chevron is not None and page_chevron.has_attr('aria-disabled'):
+
+            aria_disabled_value = page_chevron['aria-disabled']
+            
+        
+            if aria_disabled_value.lower() == "false":
+                page_has_next = True
+            else:
+                page_has_next = False
+        else:
+            
+            page_has_next = False
+
+        if(page_has_next == True):
+            page_number += 1
+        else:
+            break
+    #sorting products_dict
+    sorted_dict = sorted(products_dict.items(), key = lambda item: float(item[1][0][4:]))
+
+    #print statemtents
+    for product_name, product_data in sorted_dict:
+        new_price = product_data[0]
+        sales_percent = product_data[1]
+        link = product_data[2]
+        print(f"{new_price} - {product_name} - {sales_percent}% off - {link}")
+
+    return sorted_dict
+
+def compare():
+    old_products_dict = scraper() # i need a way to hold this old_products_dict for the period between scrapes, if I run code 
+    time.sleep(3)
+    new_products_dict = scraper()
+
+    if len(old_products_dict) != len(new_products_dict): #if length is different a new product must've been added to new products
+        for product in new_products_dict: #cycling through dictionaries and printing whatever element doens't match
+            if old_products_dict != new_products_dict: 
+                return(True, product)
+
+    else:
+        print("dictionaries are the same")
+        old_products_dict = new_products_dict
+        return False, "nothing new \n https://www.ebay.com/sme/bullseye_deals/Buy-1-get-1-free-add-2-to-cart/so.html?_soffid=12346338704&_soffType=OrderSubTotalOffer&seller=bullseye_deals&correlation=si%3Dbc0628091880aa3a6f4062f2fff2465e%2Csiid%3DAA%252Bqnp3c*%2Cc%3D245%2Csid%3Dp2387279%2CoperationId%3D2387279%2Ctrk-gflgs%3D&_ipg=192&_pgn=1" 
+
+while True: #if return 0 keep running if return 1 break
+    is_product, product = compare()
+    if is_product == False:
+        webhook = DiscordWebhook(url=webhook_url)
+        embed = DiscordEmbed(title = "New Product", description=product)
+        webhook.add_embed(embed)
+        webhook.execute()
+
+    break
+    
+
+        
+
+
+
+
+    
+
+
+    
+
+
+
