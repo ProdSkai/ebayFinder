@@ -9,8 +9,8 @@ from discord_webhook import DiscordWebhook, DiscordEmbed
 
 
 products_dict = {}
-old_products_dict = {}
-new_products_dict = {}
+old_products_list = {}
+new_products_list = {}
 
 webhook_url = "https://discord.com/api/webhooks/1232815669125447722/XMIPnTRS6vdGaZbEgyYJDOuv3_neTMDjD41aPkVbvRHPBLIBRNjQ5Q0nPOHfJFei_Foh"
 
@@ -80,12 +80,15 @@ def scraper():
 
 def compare():
     time.sleep(3)
-    new_products_dict = scraper()
+    new_products_list = scraper()
+    send_list = ()
 
-    if len(old_products_dict) != len(new_products_dict): #if length is different a new product must've been added to new products
-        for product in new_products_dict.keys(): #cycling through dictionaries and printing whatever element doens't match
-            if product not in old_products_dict: 
-                return(True, product)
+    if len(old_products_list) != len(new_products_list): #if length is different a new product must've been added to new products
+        for product in new_products_list: #cycling through dictionaries and printing whatever element doens't match
+            if product not in old_products_list: 
+                send_list.append(product)
+                
+        return(True, send_list)
 
     else:
         print("dictionaries are the same")
@@ -93,13 +96,14 @@ def compare():
 
 while True: 
     is_product, product = compare()
-    if is_product == False:
+    if is_product == True:
         webhook = DiscordWebhook(url=webhook_url)
-        embed = DiscordEmbed(title = "New Product", description=product)
-        print(embed)
-        webhook.add_embed(embed)
-        webhook.execute()
-        old_products_dict = new_products_dict
+        for item in product:
+            embed = DiscordEmbed(title = "New Product", description=product)
+            print(embed)
+            webhook.add_embed(embed)
+            webhook.execute()
+        old_products_list = new_products_list
 
     break
     
