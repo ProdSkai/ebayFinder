@@ -30,15 +30,6 @@ def scraper():
         new_prices = soup.findAll("span", attrs = {"class" : "bin"})
         orig_prices = soup.findAll("span", attrs = {"class" : "stp"})
         
-        # for product_name in products:
-        #     parent = product_name.parent
-        #     dbl_parent = parent.find_parent(class_ = "item-card lens-item")
-        #     if dbl_parent.name != 'a':
-        #         print("can't find the legit ting")
-        #     else:
-        #         link = dbl_parent.get("href")
-        #         print(link)
-        
 
         #cycles through tuple of info: if product is more than 50% off -> bind it to a dict
         for orig_price, product, new_price in zip(orig_prices, products, new_prices):
@@ -79,36 +70,36 @@ def scraper():
     sorted_dict = sorted(products_dict.items(), key = lambda item: float(item[1][0][4:]))
 
     #print statemtents
-    for product_name, product_data in sorted_dict:
-        new_price = product_data[0]
-        sales_percent = product_data[1]
-        link = product_data[2]
-        print(f"{new_price} - {product_name} - {sales_percent}% off - {link}")
+    # for product_name, product_data in sorted_dict:
+    #     new_price = product_data[0]
+    #     sales_percent = product_data[1]
+    #     link = product_data[2]
+    #     print(f"{new_price} - {product_name} - {sales_percent}% off - {link}")
 
     return sorted_dict
 
 def compare():
-    old_products_dict = scraper() # i need a way to hold this old_products_dict for the period between scrapes, if I run code 
     time.sleep(3)
     new_products_dict = scraper()
 
     if len(old_products_dict) != len(new_products_dict): #if length is different a new product must've been added to new products
-        for product in new_products_dict: #cycling through dictionaries and printing whatever element doens't match
-            if old_products_dict != new_products_dict: 
+        for product in new_products_dict.keys(): #cycling through dictionaries and printing whatever element doens't match
+            if product not in old_products_dict: 
                 return(True, product)
 
     else:
         print("dictionaries are the same")
-        old_products_dict = new_products_dict
         return False, "nothing new \n https://www.ebay.com/sme/bullseye_deals/Buy-1-get-1-free-add-2-to-cart/so.html?_soffid=12346338704&_soffType=OrderSubTotalOffer&seller=bullseye_deals&correlation=si%3Dbc0628091880aa3a6f4062f2fff2465e%2Csiid%3DAA%252Bqnp3c*%2Cc%3D245%2Csid%3Dp2387279%2CoperationId%3D2387279%2Ctrk-gflgs%3D&_ipg=192&_pgn=1" 
 
-while True: #if return 0 keep running if return 1 break
+while True: 
     is_product, product = compare()
     if is_product == False:
         webhook = DiscordWebhook(url=webhook_url)
         embed = DiscordEmbed(title = "New Product", description=product)
+        print(embed)
         webhook.add_embed(embed)
         webhook.execute()
+        old_products_dict = new_products_dict
 
     break
     
