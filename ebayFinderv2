@@ -6,7 +6,7 @@ import time
 from discord_webhook import DiscordWebhook, DiscordEmbed
 
 
-
+#global declarations used for output
 
 products_dict = {}
 old_products_list = {}
@@ -81,7 +81,7 @@ def scraper():
 def compare():
     time.sleep(3)
     new_products_list = scraper()
-    send_list = ()
+    send_list = []
 
     if len(old_products_list) != len(new_products_list): #if length is different a new product must've been added to new products
         for product in new_products_list: #cycling through dictionaries and printing whatever element doens't match
@@ -104,6 +104,8 @@ while True:
             webhook.add_embed(embed)
             webhook.execute()
         old_products_list = new_products_list
+    else:
+        print("fuck u boo theres nothing new uhhh")
 
     break
     
